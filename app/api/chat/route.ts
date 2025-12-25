@@ -1,28 +1,26 @@
 /**
- * API route for AI analysis of aggregated transcriptions
- * POST /api/analyze
+ * API route for AI chat about aggregated transcriptions
+ * POST /api/chat
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeWithGemini } from '@/lib/api/gemini-client'
-import { analyzeWithOllama } from '@/lib/api/ollama-client'
-import { AnalysisRequest, AnalysisResponse } from '@/types/analysis'
+import { chatWithGemini } from '@/lib/api/gemini-client'
+import { chatWithOllama } from '@/lib/api/ollama-client'
+import { ChatRequest, ChatResponse } from '@/types/analysis'
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AnalysisRequest = await request.json()
+    const body: ChatRequest = await request.json()
 
-    const { aggregatedData, prompt, provider } = body
+    const { aggregatedData, messages, provider } = body
 
-    // Validate required fields
-    if (!aggregatedData || !prompt) {
+    if (!aggregatedData || !messages || messages.length === 0) {
       return NextResponse.json(
-        { error: 'Missing required fields: aggregatedData and prompt' },
+        { error: 'Missing required fields: aggregatedData and messages' },
         { status: 400 }
       )
     }
 
-    // Validate aggregated data has content
     if (!aggregatedData.allContributions || aggregatedData.allContributions.length === 0) {
       return NextResponse.json(
         { error: 'No contributions found in aggregated data' },
@@ -31,13 +29,15 @@ export async function POST(request: NextRequest) {
     }
 
     const selectedProvider = provider === 'ollama' ? 'ollama' : 'gemini'
-    const analysis = selectedProvider === 'ollama'
-      ? await analyzeWithOllama(aggregatedData, prompt)
-      : await analyzeWithGemini(aggregatedData, prompt)
+    const assistantReply = selectedProvider === 'ollama'
+      ? await chatWithOllama(aggregatedData, messages)
+      : await chatWithGemini(aggregatedData, messages)
 
-    // Prepare response
-    const response: AnalysisResponse = {
-      analysis,
+    const response: ChatResponse = {
+      message: {
+        role: 'assistant',
+        content: assistantReply
+      },
       timestamp: new Date().toISOString(),
       roundsAnalyzed: aggregatedData.totalRounds,
       metadata: {
@@ -54,13 +54,13 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in analyze API route:', error)
+    console.error('Error in chat API route:', error)
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
 
     return NextResponse.json(
       {
-        error: 'Failed to analyze transcriptions',
+        error: 'Failed to chat about transcriptions',
         details: errorMessage
       },
       { status: 500 }
@@ -68,10 +68,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle unsupported methods
 export async function GET() {
   return NextResponse.json(
-    { error: 'Method not allowed. Use POST to analyze transcriptions.' },
+    { error: 'Method not allowed. Use POST to chat about transcriptions.' },
     { status: 405 }
   )
 }

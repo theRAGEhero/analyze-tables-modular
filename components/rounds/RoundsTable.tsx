@@ -13,6 +13,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Key } from 'lucide-react'
 
 interface RoundsTableProps {
   rounds: Round[]
@@ -68,6 +69,8 @@ export function RoundsTable({ rounds, selectedIds, onSelectionChange }: RoundsTa
         return 'default'
       case RoundStatus.PROCESSING:
         return 'secondary'
+      case RoundStatus.STREAMING:
+        return 'secondary'
       case RoundStatus.ERROR:
         return 'destructive'
       default:
@@ -76,9 +79,9 @@ export function RoundsTable({ rounds, selectedIds, onSelectionChange }: RoundsTa
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Available Rounds</CardTitle>
+    <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm backdrop-blur">
+      <CardHeader className="pb-4">
+        <CardTitle className="font-display text-2xl">Available Rounds</CardTitle>
         <CardDescription>
           Select rounds to analyze. {selectedIds.size > 0 && (
             <span className="font-semibold text-foreground">
@@ -97,28 +100,40 @@ export function RoundsTable({ rounds, selectedIds, onSelectionChange }: RoundsTa
             No completed rounds available for analysis.
           </p>
         ) : (
-          <div className="rounded-md border">
-            <Table>
+          <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70">
+            <Table className="min-w-[720px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
+                  <TableHead className="w-[50px] text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={handleSelectAll}
                       aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Speakers</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Description
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Speakers
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Duration
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Created
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {completedRounds.map((round) => (
-                  <TableRow key={round.id}>
+                  <TableRow key={round.id} className="hover:bg-muted/40">
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(round.id)}
@@ -128,8 +143,21 @@ export function RoundsTable({ rounds, selectedIds, onSelectionChange }: RoundsTa
                         aria-label={`Select ${round.name}`}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{round.name}</TableCell>
-                    <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                    <TableCell className="font-medium">
+                      <div className="space-y-1">
+                        <div>{round.name}</div>
+                        {round.source === 'vosk' && (
+                          <div className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 text-[11px] tracking-[0.12em] text-muted-foreground">
+                            <Key className="h-3 w-3 text-muted-foreground" />
+                            Vosk locally transcribed
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell
+                      className="text-muted-foreground max-w-[200px] truncate"
+                      title={round.description || '-'}
+                    >
                       {round.description || '-'}
                     </TableCell>
                     <TableCell>

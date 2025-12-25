@@ -54,6 +54,10 @@ See `.env.example` for required configuration:
 
 - `DEEPGRAM_API_URL`: URL of the Deepgram-modular API (default: http://localhost:3000)
 - `NEXT_PUBLIC_DEEPGRAM_API_URL`: Public URL for client-side API calls
+- `DR_ORGANIZER_API_URL`: URL of the DR-Organizer API (default: http://localhost:3005)
+- `VOSK_API_URL`: URL of the VOSK-modular API (default: http://localhost:3009)
+- `OLLAMA_API_URL`: URL of the Ollama API (default: http://localhost:11434)
+- `OLLAMA_MODEL`: Ollama model name (e.g., deepseek-r1:1.5b)
 - `GEMINI_API_KEY`: Your Gemini API key (required, server-side only)
 - `PORT`: Port to run the application on (default: 3001)
 

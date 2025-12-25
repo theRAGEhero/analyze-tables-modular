@@ -4,7 +4,22 @@
  */
 
 import { Round } from '@/types/round'
+import { Session } from '@/types/session'
+import { OrganizerRound } from '@/types/organizer-round'
 import { DeliberationOntology } from '@/types/deliberation'
+
+type RoundSource = "deepgram" | "vosk"
+
+export function buildRoundSelectionId(source: RoundSource, id: string) {
+  return `${source}:${id}`
+}
+
+const toSelectionRound = (round: Round, source: RoundSource): Round => ({
+  ...round,
+  source,
+  sourceId: round.id,
+  id: buildRoundSelectionId(source, round.id)
+})
 
 /**
  * Fetch all rounds (client-side)
@@ -24,7 +39,7 @@ export async function fetchRoundsClient(): Promise<Round[]> {
     }
 
     const data = await response.json()
-    return data.rounds || []
+    return (data.rounds || []).map((round: Round) => toSelectionRound(round, "deepgram"))
   } catch (error) {
     console.error('Error fetching rounds:', error)
     throw new Error('Failed to fetch rounds')
@@ -32,13 +47,92 @@ export async function fetchRoundsClient(): Promise<Round[]> {
 }
 
 /**
+ * Fetch rounds from VOSK-modular (client-side)
+ */
+export async function fetchVoskRoundsClient(): Promise<Round[]> {
+  try {
+    const response = await fetch('/api/vosk/rounds', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch VOSK rounds: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return (data.rounds || []).map((round: Round) => toSelectionRound(round, "vosk"))
+  } catch (error) {
+    console.error('Error fetching VOSK rounds:', error)
+    throw new Error('Failed to fetch VOSK rounds')
+  }
+}
+
+/**
+ * Fetch sessions from DR-Organizer (client-side)
+ */
+export async function fetchOrganizerSessionsClient(): Promise<Session[]> {
+  try {
+    const response = await fetch('/api/organizer/sessions', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sessions: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.sessions || []
+  } catch (error) {
+    console.error('Error fetching sessions:', error)
+    throw new Error('Failed to fetch sessions')
+  }
+}
+
+/**
+ * Fetch rounds from DR-Organizer (client-side)
+ */
+export async function fetchOrganizerRoundsClient(): Promise<OrganizerRound[]> {
+  try {
+    const response = await fetch('/api/organizer/rounds', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch organizer rounds: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.rounds || []
+  } catch (error) {
+    console.error('Error fetching organizer rounds:', error)
+    throw new Error('Failed to fetch organizer rounds')
+  }
+}
+
+/**
  * Fetch transcription for a specific round (client-side)
  * This goes through our Next.js API route which proxies to Deepgram-modular
  */
-export async function fetchTranscriptionClient(roundId: string): Promise<DeliberationOntology> {
+export async function fetchTranscriptionClient(
+  roundId: string,
+  source: RoundSource = "deepgram"
+): Promise<DeliberationOntology> {
   try {
+    const routeBase = source === "vosk" ? '/api/vosk/rounds' : '/api/rounds'
     const response = await fetch(
-      `/api/rounds/${roundId}/transcription`,
+      `${routeBase}/${roundId}/transcription`,
       {
         method: 'GET',
         headers: {
@@ -77,7 +171,9 @@ export async function fetchMultipleTranscriptionsClient(
           throw new Error(`Round ${id} not found`)
         }
 
-        const data = await fetchTranscriptionClient(id)
+        const sourceId = round.sourceId || round.id
+        const source = round.source || "deepgram"
+        const data = await fetchTranscriptionClient(sourceId, source)
         return {
           roundId: id,
           roundName: round.name,

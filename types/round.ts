@@ -2,6 +2,8 @@
 
 export interface Round {
   id: string;
+  source?: "deepgram" | "vosk";
+  sourceId?: string;
   name: string;
   description?: string;
   created_at: string;
@@ -15,6 +17,7 @@ export interface Round {
 export enum RoundStatus {
   CREATED = "created",
   RECORDING = "recording",
+  STREAMING = "streaming",
   PROCESSING = "processing",
   COMPLETED = "completed",
   ERROR = "error"

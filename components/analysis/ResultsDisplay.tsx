@@ -1,6 +1,9 @@
 "use client"
 
 import React from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeSanitize from 'rehype-sanitize'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +21,54 @@ interface ResultsDisplayProps {
 
 export function ResultsDisplay({ analysis, metadata, onClear }: ResultsDisplayProps) {
   const [copied, setCopied] = React.useState(false)
+
+  const markdownComponents = {
+    h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h2 className="font-display text-lg font-semibold" {...props} />
+    ),
+    h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h3 className="font-display text-base font-semibold" {...props} />
+    ),
+    h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h4 className="font-display text-sm font-semibold" {...props} />
+    ),
+    p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
+      <p className="text-sm leading-relaxed" {...props} />
+    ),
+    ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
+      <ul className="list-disc space-y-1 pl-5 text-sm" {...props} />
+    ),
+    ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
+      <ol className="list-decimal space-y-1 pl-5 text-sm" {...props} />
+    ),
+    li: (props: React.HTMLAttributes<HTMLLIElement>) => (
+      <li className="leading-relaxed" {...props} />
+    ),
+    a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <a
+        className="text-sm text-primary underline underline-offset-2"
+        target="_blank"
+        rel="noreferrer"
+        {...props}
+      />
+    ),
+    blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
+      <blockquote className="border-l-2 border-muted-foreground/40 pl-3 text-sm text-muted-foreground" {...props} />
+    ),
+    pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
+      <pre className="overflow-x-auto rounded-md bg-muted/70 p-3 text-xs" {...props} />
+    ),
+    code: ({
+      className,
+      inline,
+      ...props
+    }: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) =>
+      inline ? (
+        <code className="rounded bg-muted px-1 py-0.5 text-xs" {...props} />
+      ) : (
+        <code className={`text-xs ${className ?? ''}`} {...props} />
+      )
+  }
 
   const handleCopy = async () => {
     try {
@@ -53,21 +104,46 @@ export function ResultsDisplay({ analysis, metadata, onClear }: ResultsDisplayPr
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
+    <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm backdrop-blur">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <CardTitle>AI Analysis Results</CardTitle>
+            <CardTitle className="font-display text-2xl">Analysis Results</CardTitle>
             <CardDescription>
               Analyzed {metadata.roundsAnalyzed} round{metadata.roundsAnalyzed !== 1 ? 's' : ''} • {formatDate(metadata.timestamp)}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {metadata.model && (
               <Badge variant="secondary" className="text-xs">
                 {metadata.model}
               </Badge>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -80,40 +156,17 @@ export function ResultsDisplay({ analysis, metadata, onClear }: ResultsDisplayPr
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-          >
-            {copied ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownload}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download
-          </Button>
-        </div>
-
         {/* Analysis content */}
-        <div className="rounded-lg bg-muted p-4">
-          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
-            {analysis}
-          </pre>
+        <div className="rounded-xl bg-background/80 p-4">
+          <div className="space-y-3">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeSanitize]}
+              components={markdownComponents}
+            >
+              {analysis}
+            </ReactMarkdown>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -33,6 +33,7 @@ export interface GeminiCandidate {
 export interface AnalysisRequest {
   aggregatedData: AggregatedTranscription
   prompt: string
+  provider?: "gemini" | "ollama"
 }
 
 export interface AnalysisResponse {
@@ -41,6 +42,28 @@ export interface AnalysisResponse {
   roundsAnalyzed: number
   metadata?: {
     tokenCount?: number
+    model: string
+  }
+}
+
+export type ChatRole = 'user' | 'assistant'
+
+export interface ChatMessage {
+  role: ChatRole
+  content: string
+}
+
+export interface ChatRequest {
+  aggregatedData: AggregatedTranscription
+  messages: ChatMessage[]
+  provider?: "gemini" | "ollama"
+}
+
+export interface ChatResponse {
+  message: ChatMessage
+  timestamp: string
+  roundsAnalyzed: number
+  metadata?: {
     model: string
   }
 }

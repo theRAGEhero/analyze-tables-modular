@@ -32,7 +32,16 @@ import { PlanAnalysisRequest, PlanAnalysisResponse } from '@/types/plan-analysis
 const PLAN_DEFAULT_PROMPT =
   'Analyze the plan recap and highlight key themes, agreements, disagreements, and notable quotes.'
 
+const SETTINGS_STORAGE_KEY = 'analysis-source-settings'
+const DEFAULT_SETTINGS = {
+  deepgram: true,
+  vosk: true,
+  organizer: true,
+  democracyRoutes: true
+}
+
 export default function HomePage() {
+  const [sourceSettings, setSourceSettings] = useState(DEFAULT_SETTINGS)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT)
   const [planPrompt, setPlanPrompt] = useState(PLAN_DEFAULT_PROMPT)
@@ -60,16 +69,44 @@ export default function HomePage() {
   const [planRecapError, setPlanRecapError] = useState<string | null>(null)
   const [isLoadingPlanRecap, setIsLoadingPlanRecap] = useState(false)
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setSourceSettings({
+          deepgram: typeof parsed?.deepgram === 'boolean' ? parsed.deepgram : DEFAULT_SETTINGS.deepgram,
+          vosk: typeof parsed?.vosk === 'boolean' ? parsed.vosk : DEFAULT_SETTINGS.vosk,
+          organizer: typeof parsed?.organizer === 'boolean' ? parsed.organizer : DEFAULT_SETTINGS.organizer,
+          democracyRoutes:
+            typeof parsed?.democracyRoutes === 'boolean'
+              ? parsed.democracyRoutes
+              : DEFAULT_SETTINGS.democracyRoutes
+        })
+      }
+    } catch {
+      setSourceSettings(DEFAULT_SETTINGS)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(sourceSettings))
+    } catch {
+      // ignore storage errors
+    }
+  }, [sourceSettings])
+
   const {
     data: roundsData,
     error: roundsError,
     isLoading: isLoadingRounds
   } = useSWR(
-    'rounds',
+    ['rounds', sourceSettings.deepgram, sourceSettings.vosk],
     async () => {
       const [deepgramRounds, voskRounds] = await Promise.all([
-        fetchRoundsClient(),
-        fetchVoskRoundsClient()
+        sourceSettings.deepgram ? fetchRoundsClient() : Promise.resolve([]),
+        sourceSettings.vosk ? fetchVoskRoundsClient() : Promise.resolve([])
       ])
       return [...deepgramRounds, ...voskRounds]
     },
@@ -80,25 +117,31 @@ export default function HomePage() {
     data: sessionsData,
     error: sessionsError,
     isLoading: isLoadingSessions
-  } = useSWR('organizer-sessions', fetchOrganizerSessionsClient, {
-    revalidateOnFocus: false
-  })
+  } = useSWR(
+    sourceSettings.organizer ? 'organizer-sessions' : null,
+    fetchOrganizerSessionsClient,
+    { revalidateOnFocus: false }
+  )
   const {
     data: organizerRoundsData,
     error: organizerRoundsError,
     isLoading: isLoadingOrganizerRounds
-  } = useSWR('organizer-rounds', fetchOrganizerRoundsClient, {
-    revalidateOnFocus: false
-  })
+  } = useSWR(
+    sourceSettings.organizer ? 'organizer-rounds' : null,
+    fetchOrganizerRoundsClient,
+    { revalidateOnFocus: false }
+  )
 
   const {
     data: plansData,
     error: plansError,
     isLoading: isLoadingPlans,
     mutate: refreshPlans
-  } = useSWR('democracy-plans', fetchDemocracyRoutesPlansClient, {
-    revalidateOnFocus: false
-  })
+  } = useSWR(
+    sourceSettings.democracyRoutes ? 'democracy-plans' : null,
+    fetchDemocracyRoutesPlansClient,
+    { revalidateOnFocus: false }
+  )
 
   const rounds = roundsData ?? []
   const sessions = sessionsData ?? []
@@ -201,6 +244,11 @@ export default function HomePage() {
       setPlanRecap(null)
       return
     }
+    if (!sourceSettings.democracyRoutes) {
+      setPlanRecap(null)
+      setPlanRecapError('Democracy Routes source is disabled.')
+      return
+    }
 
     let isActive = true
     setIsLoadingPlanRecap(true)
@@ -248,6 +296,10 @@ export default function HomePage() {
 
   const handleAnalyzePlan = async () => {
     if (!selectedPlanId) return
+    if (!sourceSettings.democracyRoutes) {
+      setPlanAnalysisError('Democracy Routes source is disabled.')
+      return
+    }
 
     setIsAnalyzingPlan(true)
     setPlanAnalysisError(null)
@@ -462,6 +514,54 @@ export default function HomePage() {
             <div className="space-y-6 lg:col-span-7">
               <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Data sources
+                </p>
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Saved locally for this browser.</span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem(SETTINGS_STORAGE_KEY)
+                      } catch {
+                        // ignore storage errors
+                      }
+                      setSourceSettings(DEFAULT_SETTINGS)
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {[
+                    { key: 'deepgram', label: 'Deepgram rounds' },
+                    { key: 'vosk', label: 'Vosk rounds' },
+                    { key: 'organizer', label: 'Organizer sessions' },
+                    { key: 'democracyRoutes', label: 'Democracy Routes plans' }
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className="flex items-center justify-between rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-sm text-muted-foreground"
+                    >
+                      <span>{item.label}</span>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={(sourceSettings as typeof DEFAULT_SETTINGS)[item.key as keyof typeof DEFAULT_SETTINGS]}
+                        onChange={(event) =>
+                          setSourceSettings((prev) => ({
+                            ...prev,
+                            [item.key]: event.target.checked
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   View
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -485,23 +585,33 @@ export default function HomePage() {
               </div>
 
               {activePanel === "rounds" ? (
-              <SessionsPanel
-                sessions={sessions}
-                rounds={organizerRounds}
-                activeDeepgramRoundIds={activeDeepgramRoundIds}
-                activeVoskRoundIds={activeVoskRoundIds}
-                selectedIds={selectedIds}
-                onSelectionChange={setSelectedIds}
-                isLoading={isLoadingSessions || isLoadingOrganizerRounds}
-                error={sessionsErrorMessage}
-              />
-              ) : null}
-              {activePanel === "rounds" ? (
-                <RoundsTable
-                  rounds={rounds}
+                <SessionsPanel
+                  sessions={sessions}
+                  rounds={organizerRounds}
+                  activeDeepgramRoundIds={activeDeepgramRoundIds}
+                  activeVoskRoundIds={activeVoskRoundIds}
                   selectedIds={selectedIds}
                   onSelectionChange={setSelectedIds}
+                  isLoading={
+                    sourceSettings.organizer
+                      ? isLoadingSessions || isLoadingOrganizerRounds
+                      : false
+                  }
+                  error={sourceSettings.organizer ? sessionsErrorMessage : null}
                 />
+              ) : null}
+              {activePanel === "rounds" ? (
+                sourceSettings.deepgram || sourceSettings.vosk ? (
+                  <RoundsTable
+                    rounds={rounds}
+                    selectedIds={selectedIds}
+                    onSelectionChange={setSelectedIds}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-border/60 bg-card/80 p-4 text-sm text-muted-foreground">
+                    Enable Deepgram or Vosk to load rounds.
+                  </div>
+                )
               ) : null}
               {activePanel === "plans" ? (
                 <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur">
@@ -525,14 +635,24 @@ export default function HomePage() {
                     </Button>
                   </div>
 
-                  {plansErrorMessage && (
-                    <p className="mt-3 text-sm text-destructive">{plansErrorMessage}</p>
+                  {sourceSettings.democracyRoutes ? (
+                    plansErrorMessage ? (
+                      <p className="mt-3 text-sm text-destructive">{plansErrorMessage}</p>
+                    ) : null
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Democracy Routes source is disabled.
+                    </p>
                   )}
                   {planAnalysisError && (
                     <p className="mt-3 text-sm text-destructive">{planAnalysisError}</p>
                   )}
 
-                  {isLoadingPlans ? (
+                  {!sourceSettings.democracyRoutes ? (
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Enable Democracy Routes to load plans.
+                    </p>
+                  ) : isLoadingPlans ? (
                     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                       <RefreshCw className="h-4 w-4 animate-spin" />
                       Loading plans...

@@ -1,0 +1,11 @@
+.env.local
+.env.*.local
+.next
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+tsconfig.tsbuildinfo
+logs
+coverage
+.DS_Store

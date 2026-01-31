@@ -55,10 +55,17 @@ See `.env.example` for required configuration:
 - `DEEPGRAM_API_URL`: URL of the Deepgram-modular API (default: http://localhost:3000)
 - `NEXT_PUBLIC_DEEPGRAM_API_URL`: Public URL for client-side API calls
 - `DR_ORGANIZER_API_URL`: URL of the DR-Organizer API (default: http://localhost:3005)
+- `DEMOCRACY_ROUTES_API_URL`: URL of the Democracy Routes API (default: http://localhost:3015)
+- `DEMOCRACY_ROUTES_WORKFLOW_API_KEY`: API key for Democracy Routes workflow endpoints (x-api-key)
+- `DEMOCRACY_ROUTES_ANALYSIS_WEBHOOK_URL`: Base URL for saving plan analyses back to Democracy Routes (e.g., `https://democracyroutes.com`)
 - `VOSK_API_URL`: URL of the VOSK-modular API (default: http://localhost:3009)
 - `OLLAMA_API_URL`: URL of the Ollama API (default: http://localhost:11434)
 - `OLLAMA_MODEL`: Ollama model name (e.g., deepseek-r1:1.5b)
 - `GEMINI_API_KEY`: Your Gemini API key (required, server-side only)
+- `ANALYZE_TABLES_API_KEY`: Shared API key for plan analysis requests (x-api-key)
+- `LOG_LEVEL`: Logging level (debug, info, warn, error)
+- `LOG_JSON`: Set to `true` for JSON logs
+- `LOG_FILE`: Optional log file path for appending logs
 - `PORT`: Port to run the application on (default: 3001)
 
 ## Usage
@@ -148,6 +155,21 @@ npm run dev
 # Production build
 npm run build
 npm start
+```
+
+## Docker
+
+```bash
+docker build -t analyze-tables-modular .
+docker run --rm -p 3001:3001 \
+  -e DEEPGRAM_API_URL=http://host.docker.internal:3000 \
+  -e NEXT_PUBLIC_DEEPGRAM_API_URL=http://host.docker.internal:3000 \
+  -e DR_ORGANIZER_API_URL=http://host.docker.internal:3005 \
+  -e VOSK_API_URL=http://host.docker.internal:3009 \
+  -e OLLAMA_API_URL=http://host.docker.internal:11434 \
+  -e OLLAMA_MODEL=deepseek-r1:1.5b \
+  -e GEMINI_API_KEY=your_gemini_api_key_here \
+  analyze-tables-modular
 ```
 
 ## Dependencies

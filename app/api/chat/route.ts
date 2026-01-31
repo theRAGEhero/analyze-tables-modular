@@ -8,6 +8,8 @@ import { chatWithGemini } from '@/lib/api/gemini-client'
 import { chatWithOllama } from '@/lib/api/ollama-client'
 import { ChatRequest, ChatResponse } from '@/types/analysis'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json()

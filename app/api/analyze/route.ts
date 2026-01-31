@@ -8,6 +8,8 @@ import { analyzeWithGemini } from '@/lib/api/gemini-client'
 import { analyzeWithOllama } from '@/lib/api/ollama-client'
 import { AnalysisRequest, AnalysisResponse } from '@/types/analysis'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body: AnalysisRequest = await request.json()

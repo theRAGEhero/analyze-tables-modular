@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server'
 
 const DEFAULT_BASE_URL = 'http://localhost:3009'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const baseUrl = process.env.VOSK_API_URL || DEFAULT_BASE_URL

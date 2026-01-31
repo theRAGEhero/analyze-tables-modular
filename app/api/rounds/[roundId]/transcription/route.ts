@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const DEEPGRAM_API_URL = process.env.DEEPGRAM_API_URL || 'http://localhost:3000'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { roundId: string } }

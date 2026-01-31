@@ -6,6 +6,8 @@
 import { NextResponse } from 'next/server'
 import { fetchRounds } from '@/lib/api/deepgram-client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const rounds = await fetchRounds()

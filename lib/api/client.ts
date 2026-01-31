@@ -7,6 +7,8 @@ import { Round } from '@/types/round'
 import { Session } from '@/types/session'
 import { OrganizerRound } from '@/types/organizer-round'
 import { DeliberationOntology } from '@/types/deliberation'
+import { WorkflowPlanDetail, WorkflowPlanSummary } from '@/types/plan'
+import { PlanAnalysisRequest } from '@/types/plan-analysis'
 
 type RoundSource = "deepgram" | "vosk"
 
@@ -118,6 +120,94 @@ export async function fetchOrganizerRoundsClient(): Promise<OrganizerRound[]> {
   } catch (error) {
     console.error('Error fetching organizer rounds:', error)
     throw new Error('Failed to fetch organizer rounds')
+  }
+}
+
+/**
+ * Fetch plans from DR-Mirotalk workflow API (client-side)
+ */
+export async function fetchDemocracyRoutesPlansClient(params?: {
+  dataspaceId?: string
+  updatedSince?: string
+  limit?: number
+  offset?: number
+}): Promise<WorkflowPlanSummary[]> {
+  try {
+    const searchParams = new URLSearchParams()
+    if (params?.dataspaceId) searchParams.set('dataspace_id', params.dataspaceId)
+    if (params?.updatedSince) searchParams.set('updated_since', params.updatedSince)
+    if (typeof params?.limit === 'number') searchParams.set('limit', String(params.limit))
+    if (typeof params?.offset === 'number') searchParams.set('offset', String(params.offset))
+
+    const response = await fetch(`/api/democracy-routes/plans?${searchParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch plans: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.plans || []
+  } catch (error) {
+    console.error('Error fetching plans:', error)
+    throw new Error('Failed to fetch plans')
+  }
+}
+
+/**
+ * Fetch a plan from DR-Mirotalk workflow API (client-side)
+ */
+export async function fetchDemocracyRoutesPlanClient(planId: string): Promise<WorkflowPlanDetail> {
+  try {
+    const response = await fetch(`/api/democracy-routes/plans/${planId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch plan: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error(`Error fetching plan ${planId}:`, error)
+    throw new Error('Failed to fetch plan')
+  }
+}
+
+/**
+ * Fetch plan recap from Democracy Routes workflow API (client-side)
+ */
+export async function fetchDemocracyRoutesPlanRecapClient(
+  planId: string
+): Promise<PlanAnalysisRequest["recap"]> {
+  try {
+    const response = await fetch(`/api/democracy-routes/plans/${planId}/recap`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch plan recap: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.recap ?? data
+  } catch (error) {
+    console.error(`Error fetching plan recap ${planId}:`, error)
+    throw new Error('Failed to fetch plan recap')
   }
 }
 

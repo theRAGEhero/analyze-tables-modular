@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  analyze-tables-modular:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.local
+    environment:
+      DEMOCRACY_ROUTES_API_URL: "http://host.docker.internal:3015"
+      DEEPGRAM_API_URL: "http://host.docker.internal:3000"
+      NEXT_PUBLIC_DEEPGRAM_API_URL: "http://host.docker.internal:3000"
+      VOSK_API_URL: "http://host.docker.internal:3009"
+      OLLAMA_API_URL: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

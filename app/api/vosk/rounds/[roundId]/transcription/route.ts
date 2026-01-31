@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const DEFAULT_BASE_URL = 'http://localhost:3009'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: NextRequest,
   context: { params: { roundId: string } }
